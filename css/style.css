@@ -1,0 +1,71 @@
+* {
+    box-sizing: border-box;
+    padding: 0;
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "San Francisco",
+      "Helvetica Neue", Helvetica, Ubuntu, Roboto, Noto, Arial, sans-serif;
+  }
+  
+  .main {
+    padding: 1rem;
+  }
+  
+  #swatch-container {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: left;
+    gap: 10px;
+    width: 100%;
+    margin-top: .8rem;
+  }
+  
+  .swatch-circle {
+    align-items: center;
+    border-radius: 50%;
+    width: 30px;
+    height: 30px;
+    cursor: pointer;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    border: 2px solid #5a5a5a;
+  }
+  
+  
+  .color_cafe_creme {
+    background-color: #E9B9B9;
+  }
+  
+  .color_racing_red {
+    background-color: #E40F0F;
+  }
+  
+  .color_green {
+    background-color: #0BDC05;
+  }
+  
+  .color_blue {
+    background-color: #0048FF;
+  }
+  
+  .color_pink {
+    background-color: #F5CBDD;
+  }
+  
+  .color_purple {
+    background-color: #DB54E6;
+  }
+  
+  .color_gold {
+    background-color: #DFD20A;
+  }
+  
+  .color_silver {
+    background-color: #C2BBBB;
+  }
+  
+  #color-title {
+    width:15px;
+    display: inline-block;
+    height:15px;
+    margin-bottom:-1px;
+    border-radius: 15px;
+  }
