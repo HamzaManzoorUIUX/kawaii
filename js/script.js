@@ -1,12 +1,14 @@
+var productColor, productLength, productWidth;
 const STOREFRONT_ACCESS_TOKEN = "57f859c53ed397a2b6efeccb4176f44d";
 const shopStore = "ba94b7";
 const GRAPHQL_URL = `https://${shopStore}.myshopify.com/api/2023-01/graphql.json`;
-var productColor, productLength, productWidth;
+var mainData
+const newProdData = {}
 
 async function fetchCurrentProduct() {
 
     const productQuery = () => `query {
-          product(handle: "kawaii-in-square-shibuya-xxl-l") {
+          product(handle: "mogul-in-stiletto-gold-card-l") {
               id
               title
               tags
@@ -51,88 +53,61 @@ async function fetchCurrentProduct() {
             productLength = tag.split("size_")[1];
         }
     });
-
+    newProdData["productColor"] = productColor
+    newProdData["productShape"] = productShape
+    newProdData["productLength"] = productLength
+    newProdData["productWidth"] = productWidth
     // Output the results to console
     console.log("Product Color:", productColor); // ultra_violet
     console.log("Product Shape:", productShape); // coffin
     console.log("Product Length:", productLength); // s
     console.log("Product Width:", productWidth); //
 }
+const showColors = async (color, activeCol) => {
+    console.log('activeCol', activeCol);
+    const response = await fetchColor()
+    document.querySelector("#color-title").innerHTML = ""
+    color?.map(obj => {
+        const button = document.createElement("button")
+        button.type = "button"
+        button.classList.add("btn-pill")
+        button.setAttribute("active-data", obj)
+        if ((activeCol === obj) || !activeCol && (newProdData.productColor === obj.slice(6))) {
 
-fetchCurrentProduct();
-
-async function fetchProductGroup() {
-    // const productType = Tapcart.variables.product.tags.filter((item) =>
-    //   item.startsWith("product_")
-    // )[0]; // [0] to get the first match
-
-    // // Extract the full values that start with "shape_"
-    // const productShape = Tapcart.variables.product.tags.filter((item) =>
-    //   item.startsWith("shape_")
-    // )[0];
-
-    const productQuery = () => `query {
-          products(first:20, query:"tag:product_kawaii and tag:shape_square") {
-edges {
-node {
-
-              id
-              title
-              tags
-}
-}
+            button.classList.add("active")
         }
-      } `;
+        button.style.background = response[obj]
+        button.addEventListener("click", () => {
+            const active = document.querySelector("#color-title .active")
+            if (active) {
+                active.classList.remove("active")
+            }
+            button.classList.add("active")
+            activeId()
 
-    const GRAPHQL_BODY = () => {
-        return {
-            async: true,
-            crossDomain: true,
-            method: "POST",
-            headers: {
-                "X-Shopify-Storefront-Access-Token": STOREFRONT_ACCESS_TOKEN,
-                "Content-Type": "application/graphql",
-            },
-            body: productQuery(),
-        };
-    };
 
-    const res = await fetch(GRAPHQL_URL, GRAPHQL_BODY());
-    const data = await res.json();
-    let arr = [];
-    //   console.log("productsss", data.data.products.edges);
-    console.log("productsss", data.data.products.edges.map(obj => ({ id: obj.node.id, title: obj.node.title, tags: obj.node.tags })));
-    console.log("productsss", data.data.products.edges.reduce((pre, obj) => {
-        console.log('abc', obj.node.tags.reduce((x, y) => {
-            const newx = { ...x }
-            const key = y.includes("color") ? "color" : y.includes("width") ? "width" : y.includes("size") ? "size" :y.includes("product") ? "product": "other"
-            newx[key] = [...(newx[key] || []), y]
-            return newx;
-        }, []))
-        return [...new Set([...pre, ...obj.node.tags])]
-    }, []));
-
-    const productLength = arr
-        .filter((item) => item.startsWith("size_"))
-        .map((item) => item.split("size_")[1]);
-
-    // Extract all values after "width_"
-    const productWidth = arr
-        .filter((item) => item.startsWith("width_"))
-        .map((item) => item.split("width_")[1]);
-
-    // Extract all values after "color_"
-    const productColor = arr
-        .filter((item) => item.startsWith("color_"))
-        .map((item) => item.split("color_")[1]);
-
-    // Display the results
-    // console.log("Product Length:", productLength);
-    // console.log("Product Width:", productWidth);
-    // console.log("Product Color:", productColor);
+        })
+        document.querySelector("#color-title").appendChild(button)
+    })
 }
-
-fetchProductGroup();
+const activeId = () => {
+    const color = document.querySelector("#color-title .active")
+    const length = document.querySelector("#length-title .active")
+    const width = document.querySelector("#width-title .active")
+    const avaliableColors = mainData.filter(obj => {
+        if (obj.tags.includes(length.getAttribute("active-data")) && (width == null ? true : obj.tags.includes(width.getAttribute("active-data")))) {
+            return obj
+        }
+    }).map(obj => obj.tags.find(x => x.includes("color")))
+    showColors(avaliableColors, avaliableColors.includes(color.getAttribute("active-data")) ? color.getAttribute("active-data") : avaliableColors[0])
+    setTimeout(() => {
+        console.log(mainData.find(obj => obj.tags.includes(length.getAttribute("active-data")) && (width == null ? true : obj.tags.includes(width.getAttribute("active-data"))) && obj.tags.includes(document.querySelector("#color-title .active").getAttribute("active-data")))?.id.split("/")[4]);
+        Tapcart.actions.openProduct({
+            productId: `${mainData.find(obj => obj.tags.includes(length.getAttribute("active-data")) && (width == null ? true : obj.tags.includes(width.getAttribute("active-data"))) && obj.tags.includes(document.querySelector("#color-title .active").getAttribute("active-data")))?.id.split("/")[4]}`,
+            isRelatedProduct: true
+        })
+    }, 1000)
+}
 
 async function fetchColor() {
     const getMetaData = () => `query {
@@ -170,36 +145,149 @@ async function fetchColor() {
             body: getMetaData(),
         };
     };
+    const res = await fetch(GRAPHQL_URL, GRAPHQL_BODY());
+    const data = await res.json();
+    console.log("colors data", data.data.metaobjects.edges.reduce((pre, next) => {
+        const newObj = { ...pre }
+        newObj[next.node.fields.find(x => x.key === "tag").value] = next.node.fields.find(x => x.key === "color").value
+        return newObj
+    }, {}))
+    return data.data.metaobjects.edges.reduce((pre, next) => {
+        const newObj = { ...pre }
+        newObj[next.node.fields.find(x => x.key === "tag").value] = next.node.fields.find(x => x.key === "color").value
+        return newObj
+    }, {})
+
+}
+async function fetchProductGroup() {
+    //     const productType = Tapcart.variables.product.tags.filter((item) =>
+    //       item.startsWith("product_")
+    //     )[0]; // [0] to get the first match
+
+    //     // Extract the full values that start with "shape_"
+    //     const productShape = Tapcart.variables.product.tags.filter((item) =>
+    //       item.startsWith("shape_")
+    //     )[0];
+
+    //     console.log("shappee", productShape)
+    //   console.log("typeeee", productType)
+
+    const productQuery = () => `query {
+          products(first:20, query:"tag:product_mogul AND tag:shape_stiletto") {
+edges {
+node {
+
+              id
+              title
+              tags
+}
+}
+        }
+      } `;
+
+    const GRAPHQL_BODY = () => {
+        return {
+            async: true,
+            crossDomain: true,
+            method: "POST",
+            headers: {
+                "X-Shopify-Storefront-Access-Token": STOREFRONT_ACCESS_TOKEN,
+                "Content-Type": "application/graphql",
+            },
+            body: productQuery(),
+        };
+    };
 
     const res = await fetch(GRAPHQL_URL, GRAPHQL_BODY());
     const data = await res.json();
-    console.log("data3", data.data.metaobjects.edges);
-    // console.log("data2", data.data.metaobjects.edges.filter(node => {
-    //   // console.log(node.node.handle)
-    //   return node.handle == productColor;
+    await fetchCurrentProduct();
+    let arr = [];
+    console.log("productssss", data);
+    mainData = data.data.products.edges.map(obj => ({ id: obj.node.id, title: obj.node.title, tags: obj.node.tags }))
 
-    // }))
-    const colorCodeData = data.data.metaobjects.edges.filter((node) => {
-        // console.log("aa", node.node.handle)
-        // console.log("bb", productColor)
-        return node.node.handle == productColor.replace(/_/g, "-");
-    });
+    const filterData = data.data.products.edges.reduce((pre, obj) => ([...new Set([...pre, ...obj.node.tags])]), []).reduce((x, y) => {
+        const newx = { ...x }
+        const key = y.includes("color") ? "color" : y.includes("width") ? "width" : y.includes("size") ? "size" : y.includes("product") ? "product" : "other"
+        newx[key] = [...(newx[key] || []), y]
+        return newx;
 
-    console.log("code", colorCodeData);
-    const hexCode = colorCodeData[0].node.fields.filter((color) => {
-        return color.key == "color";
-    });
+    }, [])
 
-    document.querySelector(
-        "#color-title"
-    ).style.background = `${hexCode[0].value}`;
-    document.querySelector(
-        "#length-title"
-    ).innerHTML = `${productLength.toUpperCase()}`;
-    document.querySelector(
-        "#width-title"
-    ).innerHTML = `${productWidth.toUpperCase()}`;
+    // console.log("data", filterData)
+    document.querySelector("#length-title").innerHTML = ""
+    filterData.size?.map((obj) => {
+        const button = document.createElement("button")
+        button.type = "button"
+        button.classList.add("btn-pill")
+        button.setAttribute("active-data", obj)
+        console.log(newProdData.productLength, obj.split("_")[1])
+        if (newProdData.productLength === obj.split("_")[1]) {
+            button.classList.add("active")
+        }
+        button.innerHTML = obj.split("_")[1] || ""
+        button.addEventListener("click", () => {
+            const active = document.querySelector("#length-title .active")
+            if (active) {
+                active.classList.remove("active")
+            }
+            button.classList.add("active")
+            activeId()
+        })
+        document.querySelector("#length-title").appendChild(button)
 
-    // hexCode[0].value
+    })
+    if (filterData.width)
+        filterData.width?.map(obj => {
+            const button = document.createElement("button")
+            button.type = "button"
+            button.classList.add("btn-pill")
+            button.setAttribute("active-data", obj)
+            if (newProdData.productWidth === obj.split("_")[1]) {
+                button.classList.add("active")
+            }
+            button.innerHTML = obj.split("_")[1] || ""
+            button.addEventListener("click", () => {
+                const active = document.querySelector("#width-title .active")
+                if (active) {
+                    active.classList.remove("active")
+                }
+                button.classList.add("active")
+                activeId()
+
+            })
+            document.querySelector("#width-title").appendChild(button)
+
+        })
+    else
+        document.querySelector(".width").style.display = "none"
+    showColors(filterData.color)
+
+    const productLength = arr
+        .filter((item) => item.startsWith("size_"))
+        .map((item) => item.split("size_")[1]);
+
+    // Extract all values after "width_"
+    const productWidth = arr
+        .filter((item) => item.startsWith("width_"))
+        .map((item) => item.split("width_")[1]);
+
+    // Extract all values after "color_"
+    const productColor = arr
+        .filter((item) => item.startsWith("color_"))
+        .map((item) => item.split("color_")[1]);
+
+    // Display the results
+    // console.log("Product Length:", productLength);
+    // console.log("Product Width:", productWidth);
+    // console.log("Product Color:", productColor);
 }
-setTimeout(() => fetchColor(), 500);
+
+fetchProductGroup();
+
+// document.querySelector("#mainButton").addEventListener("click", () => {
+//     const color = document.querySelector("#color-title .active")
+//     const length = document.querySelector("#length-title .active")
+//     const width = document.querySelector("#width-title .active")
+//     console.log('mainData', mainData.find(obj => obj.tags.includes(length.getAttribute("active-data")) && obj.tags.includes(width.getAttribute("active-data")) && obj.tags.includes(color.getAttribute("active-data"))));
+// })
+// setTimeout(() => fetchColor(), 500);
